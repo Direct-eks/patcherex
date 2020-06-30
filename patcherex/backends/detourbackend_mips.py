@@ -111,7 +111,7 @@ class DetourBackend(Backend):
             self.touched_bytes = set()
 
             # we reused existing data segment if it is the last one in the file, otherwise we use the fallback solution
-            if data_fallback == None:
+            if data_fallback is None:
                 last_segment = self.modded_segments[-1]
                 # TODO if not global rw data in the original program, this segment is not here
                 # for now I assume it will be always here in reasonable programs
@@ -425,7 +425,7 @@ class DetourBackend(Backend):
                     if self.first_load is None:
                         self.first_load = segment
                     blah.append(((segment["p_vaddr"] - self.first_load["p_vaddr"]) - (
-                                (segment["p_vaddr"] - self.first_load["p_vaddr"]) % 0x1000), int(math.ceil(
+                            (segment["p_vaddr"] - self.first_load["p_vaddr"]) % 0x1000), int(math.ceil(
                         (segment["p_vaddr"] + segment["p_memsz"] - self.first_load["p_vaddr"]) / 0x1000) * 0x1000)))
 
             for segment in segments:
@@ -822,8 +822,8 @@ class DetourBackend(Backend):
                     mov ecx, %d
                     cld
                     rep movsb
-                ''' % (",".join([hex(x) for x in self.to_init_data]), \
-                       hex(self.name_map["ADDED_DATA_START"] + self.added_rwdata_len), \
+                ''' % (",".join([hex(x) for x in self.to_init_data]),
+                       hex(self.name_map["ADDED_DATA_START"] + self.added_rwdata_len),
                        self.added_rwinitdata_len)
                 patches.append(AddEntryPointPatch(code, priority=1000, name="INIT_DATA"))
 
@@ -907,9 +907,9 @@ class DetourBackend(Backend):
             pre_entrypoint_code_position = self.get_current_code_position()
             current_symbol_pos = self.get_current_code_position()
             entrypoint_patches = [p for p in patches if isinstance(p, AddEntryPointPatch)]
-            between_restore_entrypoint_patches = sorted([p for p in entrypoint_patches if not p.after_restore], \
+            between_restore_entrypoint_patches = sorted([p for p in entrypoint_patches if not p.after_restore],
                                                         key=lambda x: -1 * x.priority)
-            after_restore_entrypoint_patches = sorted([p for p in entrypoint_patches if p.after_restore], \
+            after_restore_entrypoint_patches = sorted([p for p in entrypoint_patches if p.after_restore],
                                                       key=lambda x: -1 * x.priority)
 
             current_symbol_pos += len(utils.compile_asm_fake_symbol("pusha\n",
@@ -1030,11 +1030,11 @@ class DetourBackend(Backend):
                 break  # at this point we applied everything in current insert_code_patches
                 # TODO symbol name, for now no name_map for InsertCode patches
 
-        header_patches = [InsertCodePatch, InlinePatch, AddEntryPointPatch, AddCodePatch, \
+        header_patches = [InsertCodePatch, InlinePatch, AddEntryPointPatch, AddCodePatch,
                           AddRWDataPatch, AddRODataPatch, AddRWInitDataPatch]
         if any([isinstance(p, ins) for ins in header_patches for p in self.added_patches]) or \
                 any([isinstance(p, SegmentHeaderPatch) for p in patches]):
-            # either implicitly (because of a patch adding code or data) or explicitly, we need to change segment headers
+            # either implicitly(because of a patch adding code or data) or explicitly, we need to change segment headers
 
             # 6) SegmentHeaderPatch
             segment_header_patches = [p for p in patches if isinstance(p, SegmentHeaderPatch)]
@@ -1057,7 +1057,7 @@ class DetourBackend(Backend):
                 last_segment = segments[-1]
                 p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz, p_flags, p_align = last_segment
                 last_segment = p_type, p_offset, p_vaddr, p_paddr, \
-                               p_filesz, p_memsz + self.added_rwdata_len + self.added_rwinitdata_len, p_flags, p_align
+                    p_filesz, p_memsz + self.added_rwdata_len + self.added_rwinitdata_len, p_flags, p_align
                 segments[-1] = last_segment
             self.setup_headers(segments)
             self.set_added_segment_headers(len(segments))
