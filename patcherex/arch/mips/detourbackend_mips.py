@@ -10,8 +10,8 @@ from elftools.construct.lib import Container
 
 from patcherex.patches import *
 
-from ..backend import Backend
-from .misc import ASM_ENTRY_POINT_PUSH_ENV, ASM_ENTRY_POINT_RESTORE_ENV
+from patcherex.backend import Backend
+from patcherex.backends.misc import ASM_ENTRY_POINT_PUSH_ENV, ASM_ENTRY_POINT_RESTORE_ENV
 
 l = logging.getLogger("patcherex.backends.DetourBackend")
 
