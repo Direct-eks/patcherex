@@ -19,11 +19,11 @@ class Tests(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.l = logging.getLogger("patcherex.test.test_detourbackend")
         self.bin_location = str(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../binaries/tests/mips/patchrex'))
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../binaries/tests/mips/patcherex'))
         self.qemu_location = shellphish_qemu.qemu_path('mips')
 
     def test_inline_patch(self):
-        self.run_test("test", [InlinePatch(0x400750, "addiu a1, v0, 0x938")],
+        self.run_test("test", [InlinePatch(0x400750, "addiu $a1, $v0, 0x938")],
                       expected_output=b"%s", expected_returnCode=0)
 
     def test_remove_instruction_patch(self):

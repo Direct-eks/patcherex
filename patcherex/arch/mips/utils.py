@@ -40,7 +40,7 @@ def compile_asm(code, base=None, name_map=None, bits=32):
     except KeyError as e:
         raise UndefinedSymbolException(str(e))
     try:
-        ks = keystone.Ks(keystone.KS_ARCH_MIPS, keystone.KS_MODE_BIG_ENDIAN)
+        ks = keystone.Ks(keystone.KS_ARCH_MIPS, keystone.KS_MODE_BIG_ENDIAN | keystone.KS_MODE_MIPS32)
         encoding, count = ks.asm(code, base)
     except keystone.KsError as e:
         print("ERROR: %s" % e)  # TODO raise some error
