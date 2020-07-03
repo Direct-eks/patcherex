@@ -19,17 +19,16 @@ class Tests(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.l = logging.getLogger("patcherex.test.test_detourbackend")
         self.bin_location = str(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../binaries/tests/armhf/patchrex'))
-        self.qemu_location = shellphish_qemu.qemu_path('arm')
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../binaries/tests/mips/patchrex'))
+        self.qemu_location = shellphish_qemu.qemu_path('mips')
 
     def test_inline_patch(self):
-        self.run_test("printf_nopie", [InlinePatch(0x103e2, "ldr r1, [pc, #0x14]"), InlinePatch(0x103e4, "add r1, pc"),
-                                       InlinePatch(0x103e6, "mov r0, r1")], expected_output=b"%s",
-                      expected_returnCode=0)
+        self.run_test("test", [InlinePatch(0x400750, "addiu a1, v0, 0x938")],
+                      expected_output=b"%s", expected_returnCode=0)
 
     def test_remove_instruction_patch(self):
-        self.run_test("printf_nopie", [RemoveInstructionPatch(0x103e0, 2), RawMemPatch(0x10450, b"\xbf")],
-                      expected_output=b"\xbfs", expected_returnCode=0)
+        self.run_test("test", [RemoveInstructionPatch(0x400754, 4)],
+                      expected_output=b"Hello", expected_returnCode=0)
 
     def test_add_code_patch(self):
         added_code = '''
@@ -37,8 +36,8 @@ class Tests(unittest.TestCase):
             mov r0, 0x32
             svc 0
         '''
-        self.run_test("printf_nopie", [AddCodePatch(added_code, "added_code")], set_oep="added_code",
-                      expected_returnCode=0x32)
+        self.run_test("test", [AddCodePatch(added_code, "added_code")],
+                      set_oep="added_code", expected_returnCode=0x32)
 
     def test_insert_code_patch(self):
         test_str = b"qwertyuiop\n\x00"
@@ -268,7 +267,7 @@ class Tests(unittest.TestCase):
             if set_oep:
                 backend.set_oep(backend.name_map[set_oep])
             backend.save(tmp_file)
-            p = subprocess.Popen([self.qemu_location, "-L", "/usr/arm-linux-gnueabihf", tmp_file], stdin=pipe,
+            p = subprocess.Popen([self.qemu_location, "-L", "/usr/mips-linux-gnu", tmp_file], stdin=pipe,
                                  stdout=pipe, stderr=pipe)
             res = p.communicate(input)
             if expected_output:
