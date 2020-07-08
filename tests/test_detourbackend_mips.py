@@ -32,123 +32,99 @@ class Tests(unittest.TestCase):
 
     def test_add_code_patch(self):
         added_code = '''
-            mov r7, 0x1
-            mov r0, 0x32
-            svc 0
+
         '''
         self.run_test("test", [AddCodePatch(added_code, "added_code")],
                       set_oep="added_code", expected_returnCode=0x32)
 
     def test_insert_code_patch(self):
-        test_str = b"qwertyuiop\n\x00"
+        test_str = b"abcdefghij\n\x00"
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x1
-            ldr r1, ={added_data}
-            mov r2, %d
-            svc 0
-        ''' % (len(test_str))
-        p1 = InsertCodePatch(0x103ec, added_code)
+            la $a0, added_data
+            jal printf
+        '''
+        p1 = InsertCodePatch(0x400768, added_code)
         p2 = AddRODataPatch(test_str, "added_data")
 
-        self.run_test("printf_nopie", [p1, p2], expected_output=b"qwertyuiop\n\x00Hi", expected_returnCode=0)
+        self.run_test("test", [p1, p2], expected_output=b"Helloabcdefghij\n",
+                      expected_returnCode=0)
 
     def test_add_label_patch(self):
-        p1 = AddLabelPatch(0x10451, "added_label")
+        p1 = AddLabelPatch(0x400934, "added_label")
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x1
-            ldr r1, ={added_label}
-            mov r2, 1
-            svc 0
+            la $a0, added_label
+            jal printf
         '''
-        p2 = InsertCodePatch(0x103ec, added_code)
+        p2 = InsertCodePatch(0x400768, added_code)
 
-        self.run_test("printf_nopie", [p1, p2], expected_output=b"sHi", expected_returnCode=0)
+        self.run_test("test", [p1, p2], expected_output=b"Helloo", expected_returnCode=0)
 
-    def test_raw_file_patch(self):
-        self.run_test("printf_nopie", [RawFilePatch(0x44c, b"No")], expected_output=b"No", expected_returnCode=0)
+    # def test_raw_file_patch(self):
+    #     self.run_test("printf_nopie", [RawFilePatch(0x44c, b"No")], expected_output=b"No",
+    #                   expected_returnCode=0)
 
-    def test_raw_mem_patch(self):
-        self.run_test("printf_nopie", [RawMemPatch(0x1044c, b"No")], expected_output=b"No", expected_returnCode=0)
+    # def test_raw_mem_patch(self):
+    #     self.run_test("printf_nopie", [RawMemPatch(0x1044c, b"No")], expected_output=b"No",
+    #                   expected_returnCode=0)
 
     def test_add_ro_data_patch(self, tlen=5):
         p1 = AddRODataPatch(b"A" * tlen, "added_data")
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x1
-            ldr r1, ={added_data}
-            mov r2, %d
-            svc 0
+            la $a0, added_data
+            jal printf
         ''' % tlen
-        p2 = InsertCodePatch(0x103ec, added_code, "added_code")
+        p2 = InsertCodePatch(0x400768, added_code, 'added_code')
 
-        self.run_test("printf_nopie", [p1, p2], expected_output=b"A" * tlen + b"Hi", expected_returnCode=0x0)
+        self.run_test("test", [p1, p2], expected_output=b"Hello" + b"A" * tlen,
+                      expected_returnCode=0x0)
 
     def test_add_rw_data_patch(self, tlen=5):
         p1 = AddRWDataPatch(tlen, "added_data_rw")
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x41
-            mov r1, 0x0
-            mov r2, %d
-            ldr r3, ={added_data_rw}
-            _loop:
-                cmp r1, r2
-                beq _exit
-                str r0, [r3, r1]
-                add r1, r1, 1
-                b _loop
-            _exit:
-            mov r0, 0x1
-            ldr r1, ={added_data_rw}
-            svc 0
+            li $t0, 0x41
+            and $t1, $zero
+            li $t2, %d
+            la $v0, added_data_rw
+            loop:
+                beq $t1, $t2, exit
+                sw $t0, ($v0)
+                addiu $v0, $v0, 4
+                j loop
+            exit:
+                la $a0, added_data_rw
+                jal printf
         ''' % tlen
-        p2 = InsertCodePatch(0x103ec, added_code, "modify_and_print")
+        p2 = InsertCodePatch(0x400768, added_code, "modify_and_print")
 
-        self.run_test("printf_nopie", [p1, p2], expected_output=b"A" * tlen + b"Hi", expected_returnCode=0)
+        self.run_test("test", [p1, p2], expected_output=b"Hello" + b"A" * tlen,
+                      expected_returnCode=0)
 
     def test_add_rw_init_data_patch(self, tlen=5):
         p1 = AddRWInitDataPatch(b"A" * tlen, "added_data_rw")
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x1
-            ldr r1, ={added_data_rw}
-            mov r2, %d
-            svc 0
+            la $a0, added_data_rw
+            jal printf
         ''' % tlen
-        p2 = InsertCodePatch(0x103ec, added_code, "print")
+        p2 = InsertCodePatch(0x400768, added_code, "print")
 
-        self.run_test("printf_nopie", [p1, p2], expected_output=b"A" * tlen + b"Hi", expected_returnCode=0)
+        self.run_test("test", [p1, p2], expected_output=b"Hello" + b"A" * tlen,
+                      expected_returnCode=0)
 
     def test_add_entry_point_patch(self):
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x1
-            ldr r1, =0x10450
-            mov r2, 2
-            svc 0
 
-            mov r7, 0x1
-            mov r0, 0x1
-            svc 0
         '''
-        self.run_test("printf_nopie", [AddEntryPointPatch(added_code)], expected_output=b'%s', expected_returnCode=0x1)
+        self.run_test("test", [AddEntryPointPatch(added_code)], expected_output=b'%s',
+                      expected_returnCode=0x1)
 
     def test_c_compilation(self):
         added_code = '''
-            mov r7, 0x4
-            mov r0, 0x0
-            %s
-            ldr r1, =0x10451
-            mov r2, 1
-            svc 0
 
-        ''' % patcherex.arch.arm.utils.get_nasm_c_wrapper_code("c_function", get_return=True)
+        ''' % patcherex.arch.mips.utils.get_nasm_c_wrapper_code("c_function", get_return=True)
 
-        self.run_test("printf_nopie", [InsertCodePatch(0x103ec, added_code, name="p1", priority=1),
+        self.run_test("test", [InsertCodePatch(0x103ec, added_code, name="p1", priority=1),
                                        AddCodePatch("__attribute__((fastcall)) int func(int a){ return a + 1; }",
-                                                    "c_function", is_c=True, compiler_flags="", is_thumb=True)],
+                                                    "c_function", is_c=True, compiler_flags="")],
                       expected_output=b"sHi", expected_returnCode=0x0)
 
     def test_add_data_patch_long(self):
@@ -185,7 +161,8 @@ class Tests(unittest.TestCase):
         patches.append(AddCodePatch(added_code, "added_function"))
         patches.append(AddRODataPatch(test_str, "added_data"))
 
-        self.run_test("printf_nopie", patches, expected_output=b'%s' + test_str, expected_returnCode=0x34)
+        self.run_test("printf_nopie", patches, expected_output=b'%s' + test_str,
+                      expected_returnCode=0x34)
 
     def test_double_patch_collision(self):
         test_str1 = b"1111111111\n\x00"
